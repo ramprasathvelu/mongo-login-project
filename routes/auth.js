@@ -1,34 +1,39 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const User = require('../models/User');
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const User = require("../models/User");
 
 const router = express.Router();
 
-// Register
-router.post('/register', async (req, res) => {
-  const { username, password } = req.body;
+router.post("/register", async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 10);
+    const user = new User({ username, password: hashed });
+    await user.save();
 
-  await User.create({
-    username,
-    password: hashedPassword
-  });
-
-  res.send("User Registered");
+    res.json({ message: "User registered" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Registration failed" });
+  }
 });
 
-// Login
-router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+router.post("/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-  const user = await User.findOne({ username });
-  if (!user) return res.send("User not found");
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ error: "User not found" });
 
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) return res.send("Invalid password");
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) return res.status(400).json({ error: "Wrong password" });
 
-  res.send("Login Successful");
+    res.json({ message: "Login success" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Login failed" });
+  }
 });
 
 module.exports = router;
